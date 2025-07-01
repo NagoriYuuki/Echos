@@ -20,25 +20,33 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 1. 修改留言墙的布局方式 */
         #message-wall {
-            /* 在中等屏幕及以上尺寸，使用 CSS 多列布局实现瀑布流 */
-            column-count: 2; /* 分为两列 */
-            column-gap: 1.5rem; /* 设置列之间的间距 (24px) */
+            column-count: 2;
+            column-gap: 1.5rem;
         }
-        /* 在小屏幕上，恢复单列布局 */
         @media (max-width: 768px) {
             #message-wall {
                 column-count: 1;
             }
         }
 
-        /* 2. 修改卡片样式，防止卡片在列之间被切断 */
         .message-card {
             animation: fadeIn 0.5s ease-out forwards;
-            break-inside: avoid; /* 这是实现瀑布流布局的关键，防止单个卡片被分割到两列中 */
-            margin-bottom: 1.5rem; /* 为卡片添加下边距，作为行间距 */
+            break-inside: avoid;
+            margin-bottom: 1.5rem;
+            /* 新增：为 transform 和 box-shadow 添加平滑过渡效果 */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
         }
+
+        /* 新增：鼠标悬浮时的效果 */
+        .message-card:hover {
+            /* 向上浮动 5px */
+            transform: translateY(-10px);
+            box-shadow:
+                    0 25px 30px -5px rgba(0, 0, 0, 0.3),
+                    0 12px 15px -6px rgba(0, 0, 0, 0.25);
+        }
+
 
         /* 点赞动画 (保持不变) */
         @keyframes heart-pop {
@@ -100,7 +108,6 @@
         </form>
     </header>
 
-    <!-- 3. 移除了 main 上的 grid 布局类，因为样式已在 <style> 中定义 -->
     <div class="bg-white/60 backdrop-blur-lg shadow-xl rounded-lg p-6">
         <main id="message-wall">
             <!-- 留言卡片将通过 JavaScript 动态插入到这里 -->
