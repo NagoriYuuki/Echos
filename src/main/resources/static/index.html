@@ -9,44 +9,27 @@
 
     <style>
         body {
-            background-image: url('https://placehold.co/1920x1080/a9c1de/ffffff?text=Your+Image+Here');
+            background-image: url("./images/img.png");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
         }
+}
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        #message-wall {
-            column-count: 2;
-            column-gap: 1.5rem;
-        }
-        @media (max-width: 768px) {
-            #message-wall {
-                column-count: 1;
-            }
-        }
-
         .message-card {
             animation: fadeIn 0.5s ease-out forwards;
-            break-inside: avoid;
-            margin-bottom: 1.5rem;
-            /* 新增：为 transform 和 box-shadow 添加平滑过渡效果 */
             transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
         }
 
-        /* 新增：鼠标悬浮时的效果 */
         .message-card:hover {
-            /* 向上浮动 5px */
-            transform: translateY(-10px);
-            box-shadow:
-                    0 25px 30px -5px rgba(0, 0, 0, 0.3),
-                    0 12px 15px -6px rgba(0, 0, 0, 0.25);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
         }
-
 
         /* 点赞动画 (保持不变) */
         @keyframes heart-pop {
@@ -97,28 +80,28 @@
 </head>
 <body class="min-h-screen font-sans">
 
-<div class="container mx-auto p-4 md:p-8 max-w-5xl">
+<div class="container mx-auto p-4 md:p-8 max-w-7xl">
 
-    <header class="bg-white/70 backdrop-blur-lg shadow-xl rounded-lg p-8 mb-8">
+    <header class="bg-white/30 backdrop-blur-lg shadow-xl rounded-lg p-8 mb-8">
         <h1 class="text-4xl font-bold text-gray-800 text-center mb-2">Echos</h1>
-        <p class="text-gray-600 text-center mb-6">在这里，留下你的回响。</p>
+        <p class="text-white-600 text-center mb-6">在这里，留下你的回响。</p>
         <form action="/api/messages" method="POST">
             <textarea name="content" class="w-full h-28 p-4 border border-gray-300 bg-white/80 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="有什么想说的吗..." required></textarea>
             <button type="submit" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">投入回响</button>
         </form>
     </header>
 
-    <div class="bg-white/60 backdrop-blur-lg shadow-xl rounded-lg p-6">
-        <main id="message-wall">
-            <!-- 留言卡片将通过 JavaScript 动态插入到这里 -->
+    <div class="bg-white/30 backdrop-blur-lg shadow-xl rounded-lg p-6">
+        <main id="message-wall-container" class="flex flex-col md:flex-row md:space-x-6">
+            <div id="column-left" class="w-full md:w-1/2"></div>
+            <div id="column-right" class="w-full md:w-1/2"></div>
         </main>
     </div>
 </div>
 
 <script>
-    // JavaScript 部分的代码和之前完全一样，无需改动！
     document.addEventListener('DOMContentLoaded', () => {
-        const messageWall = document.getElementById('message-wall');
+        const messageWallContainer = document.getElementById('message-wall-container');
 
         async function fetchMessages() {
             try {
@@ -128,38 +111,66 @@
                 renderMessages(messages);
             } catch (error) {
                 console.error('获取留言失败:', error);
-                messageWall.innerHTML = '<p class="text-center text-red-500">加载留言失败，请刷新页面重试。</p>';
+                messageWallContainer.innerHTML = '<p class="text-center text-red-500 w-full">加载留言失败，请刷新页面重试。</p>';
             }
         }
 
+        // --- 核心修复：重构 renderMessages 函数 ---
         function renderMessages(messages) {
-            messageWall.innerHTML = '';
+            // 确保容器是空的，并且包含两列
+            messageWallContainer.innerHTML = `
+                    <div id="column-left" class="w-full md:w-1/2"></div>
+                    <div id="column-right" class="w-full md:w-1/2"></div>
+                `;
+            const colLeft = document.getElementById('column-left');
+            const colRight = document.getElementById('column-right');
+
             if (messages.length === 0) {
-                messageWall.innerHTML = '<p class="text-center text-gray-500">还没有人留下回响，来做第一个吧！</p>';
+                messageWallContainer.innerHTML = '<p class="text-center text-gray-500 w-full">还没有人留下回响，来做第一个吧！</p>';
                 return;
             }
-            messages.forEach(msg => {
-                const card = document.createElement('div');
-                card.className = 'message-card bg-white shadow-md rounded-lg p-6';
-                const formattedTime = new Date(msg.createTime).toLocaleString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-                card.innerHTML = `
-                        <p class="text-gray-700 text-lg mb-4 whitespace-pre-wrap">${escapeHTML(msg.content)}</p>
-                        <div class="flex justify-between items-center text-sm text-gray-400">
-                            <span>${formattedTime}</span>
-                            <div class="flex items-center space-x-2">
-                                <button class="like-btn text-gray-400" data-id="${msg.id}">
-                                    <i class="bi bi-heart text-xl"></i>
-                                </button>
-                                <span class="like-count font-semibold text-gray-600">${msg.likes}</span>
-                            </div>
-                        </div>
-                    `;
-                messageWall.appendChild(card);
+            // 手动追踪每一列的累积高度
+            let leftColumnHeight = 0;
+            let rightColumnHeight = 0;
+
+            messages.forEach(msg => {
+                const card = createMessageCard(msg);
+
+                // 核心逻辑：比较我们手动追踪的高度，而不是去读取 DOM
+                if (leftColumnHeight <= rightColumnHeight) {
+                    colLeft.appendChild(card);
+                    // 在卡片被添加到 DOM 后，立刻获取它的实际高度并累加
+                    leftColumnHeight += card.offsetHeight;
+                } else {
+                    colRight.appendChild(card);
+                    rightColumnHeight += card.offsetHeight;
+                }
             });
         }
 
-        messageWall.addEventListener('click', async (event) => {
+        function createMessageCard(msg) {
+            const card = document.createElement('div');
+            // 注意：为卡片添加下边距，这个边距也会被 offsetHeight 计算在内
+            card.className = 'message-card bg-white/80 shadow-md rounded-lg p-6 mb-6';
+            const formattedTime = new Date(msg.createTime).toLocaleString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            card.innerHTML = `
+                    <p class="text-gray-700 text-lg mb-4 whitespace-pre-wrap">${escapeHTML(msg.content)}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-400">
+                        <span>${formattedTime}</span>
+                        <div class="flex items-center space-x-2">
+                            <button class="like-btn text-gray-400" data-id="${msg.id}">
+                                <i class="bi bi-heart text-xl"></i>
+                            </button>
+                            <span class="like-count font-semibold text-gray-600">${msg.likes}</span>
+                        </div>
+                    </div>
+                `;
+            return card;
+        }
+
+        messageWallContainer.addEventListener('click', async (event) => {
             const likeButton = event.target.closest('.like-btn');
             if (!likeButton || likeButton.classList.contains('liked')) {
                 return;
