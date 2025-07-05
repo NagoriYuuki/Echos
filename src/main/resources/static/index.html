@@ -31,7 +31,7 @@
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
         }
 
-        /* 点赞动画 (保持不变) */
+
         @keyframes heart-pop {
             0% { transform: scale(1); }
             50% { transform: scale(1.4); }
@@ -115,7 +115,6 @@
             }
         }
 
-        // --- 核心修复：重构 renderMessages 函数 ---
         function renderMessages(messages) {
             // 确保容器是空的，并且包含两列
             messageWallContainer.innerHTML = `
@@ -130,17 +129,14 @@
                 return;
             }
 
-            // 手动追踪每一列的累积高度
             let leftColumnHeight = 0;
             let rightColumnHeight = 0;
 
             messages.forEach(msg => {
                 const card = createMessageCard(msg);
 
-                // 核心逻辑：比较我们手动追踪的高度，而不是去读取 DOM
                 if (leftColumnHeight <= rightColumnHeight) {
                     colLeft.appendChild(card);
-                    // 在卡片被添加到 DOM 后，立刻获取它的实际高度并累加
                     leftColumnHeight += card.offsetHeight;
                 } else {
                     colRight.appendChild(card);
@@ -151,7 +147,6 @@
 
         function createMessageCard(msg) {
             const card = document.createElement('div');
-            // 注意：为卡片添加下边距，这个边距也会被 offsetHeight 计算在内
             card.className = 'message-card bg-white/80 shadow-md rounded-lg p-6 mb-6';
             const formattedTime = new Date(msg.createTime).toLocaleString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
